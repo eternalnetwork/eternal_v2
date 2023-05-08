@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "account",
+    "core",
+    "rpc",
+    "p2p",
+]

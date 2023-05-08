@@ -1,0 +1,13 @@
+[package]
+name = "eternal-account"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0.162", features = ["derive"] }
+rust-crypto = "0.2.36"
+rand_core = { version = "0.6.4", features = ["std"] }
+bip32 = "0.5.0"
+blake-hash = "0.4.1"
