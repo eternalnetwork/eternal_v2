@@ -1,8 +1,8 @@
 use std::time::SystemTime;
 
-use blake2::{Blake2s256, Digest};
 use eternal_account::AccountType;
 use serde::{Deserialize, Serialize};
+use sha2::{Sha256, Digest};
 
 use crate::WorldState;
 
@@ -17,7 +17,7 @@ pub struct Transaction {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum TransactionData {
-    CreateUserAccount(String),
+    CreateUserAccount,
     ChangeStoreValue { key: String, value: String },
     TransferToken { to: String, amount: u128 },
     MintTokens { receiver: String, amount: u128 },
@@ -48,8 +48,8 @@ impl Transaction {
         }
 
         return match &self.data {
-            TransactionData::CreateUserAccount(account) => {
-                world_state.create_account(account.into(), AccountType::User)
+            TransactionData::CreateUserAccount => {
+                world_state.create_account(AccountType::User)
             }
 
             TransactionData::MintTokens { receiver, amount } => {
@@ -106,7 +106,7 @@ impl Transaction {
 
     /// Will calculate the hash using Blake2 hasher
     pub fn calculate_hash(&self) -> Vec<u8> {
-        let mut hasher = Blake2s256::new();
+        let mut hasher = Sha256::new();
 
         let transaction_as_string = format!(
             "{:?}",

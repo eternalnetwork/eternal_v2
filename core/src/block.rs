@@ -1,6 +1,6 @@
-use crate::{byte_vector_to_string, transaction::Transaction};
+use crate::transaction::Transaction;
 use serde::{Deserialize, Serialize};
-use blake2::{Blake2s256, Digest};
+use sha2::{Digest, Sha256};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Block {
@@ -20,15 +20,13 @@ impl Block {
         }
     }
 
-    /// Changes the nonce number and updates the hash
     pub fn set_nonce(&mut self, nonce: u128) {
         self.nonce = nonce;
         self.update_hash();
     }
 
-    /// Will calculate the hash of the whole block including transactions Blake2 hasher
-    pub fn calculate_hash(&self) -> Vec<u8> {
-        let mut hasher = Blake2s256::new();
+    pub fn calculate_hash(&self) -> String {
+        let mut hasher = Sha256::new();
 
         for transaction in self.transactions.iter() {
             hasher.update(transaction.calculate_hash())
@@ -37,10 +35,7 @@ impl Block {
         let block_as_string = format!("{:?}", (&self.prev, &self.nonce));
         hasher.update(&block_as_string);
 
-        let binding = hasher.finalize();
-        let hash: &[u8] = binding.as_ref();
-
-        return Vec::from(hash);
+        return format!("{:X}", hasher.finalize());
     }
 
     /// Appends a transaction to the queue
@@ -57,15 +52,13 @@ impl Block {
     /// Will update the hash field by including all transactions currently inside
     /// the public modifier is only for the demonstration of attacks
     pub fn update_hash(&mut self) {
-        self.hash = Some(byte_vector_to_string(&self.calculate_hash()));
+        self.hash = Some(self.calculate_hash());
     }
 
     /// Checks if the hash is set and matches the blocks interna
     pub fn verify_own_hash(&self) -> bool {
         if self.hash.is_some() && // Hash set
-            self.hash.as_ref().unwrap().eq(
-                &byte_vector_to_string(
-                    &self.calculate_hash()))
+            self.hash.as_ref().unwrap().eq(&self.calculate_hash())
         {
             // Hash equals calculated hash
 

@@ -2,6 +2,7 @@
 members = [
     "account",
     "core",
-    "rpc",
+    "protocol",
     "p2p",
+    "test"
 ]
