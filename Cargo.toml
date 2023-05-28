@@ -2,7 +2,6 @@
 members = [
     "account",
     "core",
-    "protocol",
-    "p2p",
-    "test"
+    "networking",
+    "tests"
 ]

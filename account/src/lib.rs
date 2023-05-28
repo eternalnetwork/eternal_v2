@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 pub struct Account {
     pub private_key: String,
     pub public_key: String,
+    pub public_key_bytes: Vec<u8>,
     pub store: HashMap<String, String>,
     pub acc_type: AccountType,
     pub tokens: u128,
@@ -17,6 +18,7 @@ pub struct Account {
 pub enum AccountType {
     User,
     Contract,
+    Node,
     Token {
         init_supply: u128,
         burn: bool,
@@ -30,11 +32,12 @@ pub enum AccountType {
 
 impl Account {
     pub fn new(account_type: AccountType) -> Self {
-        let (priv_key, pub_key) = Self::generate_keypair();
+        let (priv_key, pub_key, pk_bytes) = Self::generate_keypair();
 
         Self {
             private_key: priv_key,
             public_key: pub_key,
+            public_key_bytes: pk_bytes.to_vec(),
             store: HashMap::new(),
             acc_type: account_type,
             tokens: 0,
@@ -42,10 +45,10 @@ impl Account {
     }
 
     pub fn generate_adress(&self) -> String {
-        format!("ETNL{}", &self.public_key[33..66])
+        format!("ETNL:{}", &self.public_key[33..66])
     }
 
-    pub fn generate_keypair() -> (String, String) {
+    pub fn generate_keypair() -> (String, String, [u8; 33]) {
         let mut priv_key = [0; 32];
         rand::thread_rng().fill_bytes(&mut priv_key);
 
@@ -55,6 +58,10 @@ impl Account {
 
         let pub_key = PublicKey::from_secret_key(&context, &secret_key);
 
-        (hex::encode(priv_key), pub_key.to_string())
+        (
+            hex::encode(priv_key),
+            pub_key.clone().to_string(),
+            pub_key.clone().serialize(),
+        )
     }
 }

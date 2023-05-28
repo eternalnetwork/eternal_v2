@@ -21,6 +21,7 @@ impl Blockchain {
                     .to_string(),
                 public_key: "03050f36e932ade90ce57a00f79ac39e3ef3c9bc4d1a25b4470ce63a68eab665d8"
                     .to_string(),
+                public_key_bytes: vec![],
                 store: HashMap::new(),
                 acc_type: AccountType::User,
                 tokens: 100,
@@ -33,6 +34,7 @@ impl Blockchain {
                     .to_string(),
                 public_key: "0226e56beda35e9c4698a6f37975d4792fc1ba2b2ce877357d6c5abda465ba4e44"
                     .to_string(),
+                public_key_bytes: vec![],
                 store: HashMap::new(),
                 acc_type: AccountType::User,
                 tokens: 100,
