@@ -9,3 +9,6 @@ edition = "2021"
 eternal-account = { version = "0.1.0", path = "../account" }
 eternal-core = { version = "0.1.0", path = "../core" }
 eternal-networking = { version = "0.1.0", path = "../networking" }
+serde_json = "1.0.96"
+eternal-vm = { version = "0.1.0", path = "../vm" }
+rustyline = "11.0.0"
