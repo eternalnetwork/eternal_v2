@@ -2,7 +2,7 @@ use crate::transaction::Transaction;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Block {
     pub transactions: Vec<Transaction>,
     pub prev: Option<String>,

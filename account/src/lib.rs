@@ -1,5 +1,5 @@
 use rand::RngCore;
-use secp256k1::{PublicKey, Secp256k1, SecretKey};
+use secp256k1::{ecdsa::Signature, PublicKey, Secp256k1, SecretKey};
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 pub struct Account {
     pub private_key: String,
     pub public_key: String,
+    pub secret_key: String,
     pub public_key_bytes: Vec<u8>,
     pub store: HashMap<String, String>,
     pub acc_type: AccountType,
@@ -23,6 +24,7 @@ pub enum AccountType {
         init_supply: u128,
         burn: bool,
     },
+    SmartContract,
     Validator {
         correctly_validated_blocks: u128,
         incorrectly_validated_blocks: u128,
@@ -44,11 +46,32 @@ impl Account {
         }
     }
 
-    pub fn generate_adress(&self) -> String {
-        format!("ETNL:{}", &self.public_key[33..66])
+    pub fn from(priv_key: String) -> Self {
+        let context = Secp256k1::default();
+
+        let secret_key = SecretKey::from_slice(&priv_key.as_bytes()).unwrap();
+
+        let pub_key = PublicKey::from_secret_key(&context, &secret_key);
+
+        Self {
+            private_key: priv_key,
+            public_key: pub_key.clone().to_string(),
+            public_key_bytes: pub_key.clone().serialize().to_vec(),
+            store: HashMap::new(),
+            acc_type: AccountType::User,
+            tokens: 0,
+        }
     }
 
-    pub fn generate_keypair() -> (String, String, [u8; 33]) {
+    pub fn generate_adress(&self) -> String {
+        format!("etnl:{}", &self.public_key[33..66])
+    }
+
+    pub fn sign(&self) {}
+
+    pub fn verify(&self) {}
+
+    pub fn generate_keypair() -> (String, String, String, [u8; 33]) {
         let mut priv_key = [0; 32];
         rand::thread_rng().fill_bytes(&mut priv_key);
 
@@ -60,6 +83,7 @@ impl Account {
 
         (
             hex::encode(priv_key),
+            hex::encode(secret_key.secret_bytes()),
             pub_key.clone().to_string(),
             pub_key.clone().serialize(),
         )

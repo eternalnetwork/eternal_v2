@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 eternal-account = { path = "../account" }
+eternal-vm = { version = "0.1.0", path = "../vm" }
 serde = { version = "1.0.162", features = ["derive"] }
 sha2 = "0.10.6"

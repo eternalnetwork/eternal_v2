@@ -1,12 +1,13 @@
 use std::time::SystemTime;
 
 use eternal_account::AccountType;
+use eternal_vm::smart_contract::{self, SmartContract, SmartContractStanderd};
 use serde::{Deserialize, Serialize};
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 
-use crate::WorldState;
+use eternal_vm::WorldState;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Transaction {
     pub nonce: u128,
     pub from: String,
@@ -15,12 +16,31 @@ pub struct Transaction {
     pub signature: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub enum TransactionData {
     CreateUserAccount,
-    ChangeStoreValue { key: String, value: String },
-    TransferToken { to: String, amount: u128 },
-    MintTokens { receiver: String, amount: u128 },
+    ChangeStoreValue {
+        key: String,
+        value: String,
+    },
+    TransferToken {
+        token: String,
+        to: String,
+        amount: u128,
+    },
+    Transfer {
+        to: String,
+        amount: u128,
+    },
+    MintTokens {
+        receiver: String,
+        amount: u128,
+    },
+    DeploySmartContract {
+        publisher: String,
+        #[serde(skip_serializing, skip_deserializing)]
+        sc: Option<SmartContract>,
+    },
 }
 
 impl Transaction {
@@ -38,7 +58,7 @@ impl Transaction {
         &self,
         world_state: &mut T,
         is_initial: &bool,
-    ) -> Result<(), &'static str> {
+    ) -> Result<String, &'static str> {
         if let Some(_account) = world_state.get_account_by_id(&self.from) {
             // Do some more checkups later on...
         } else {
@@ -49,7 +69,8 @@ impl Transaction {
 
         return match &self.data {
             TransactionData::CreateUserAccount => {
-                world_state.create_account(AccountType::User)
+                world_state.create_account(AccountType::User).unwrap();
+                Ok("Created Account".to_string())
             }
 
             TransactionData::MintTokens { receiver, amount } => {
@@ -61,13 +82,13 @@ impl Transaction {
 
                 return if let Some(account) = world_state.get_account_by_id_mut(receiver) {
                     account.tokens += *amount;
-                    Ok(())
+                    Ok("Minted".to_string())
                 } else {
                     Err("Receiver Account does not exist (Code: 23482309)")
                 };
             }
 
-            TransactionData::TransferToken { to, amount } => {
+            TransactionData::Transfer { to, amount } => {
                 let recv_tokens: u128;
                 let sender_tokens: u128;
 
@@ -94,13 +115,69 @@ impl Transaction {
                         .tokens = balance_sender_new.unwrap();
                     world_state.get_account_by_id_mut(&to).unwrap().tokens =
                         balance_recv_new.unwrap();
-                    return Ok(());
+                    return Ok("Trasnferd".to_string());
                 } else {
                     return Err("Overspent or Arithmetic error (Code: 48239084203)");
                 }
             }
 
-            _ => Err("Unknown Transaction type (not implemented) (Code: 487289724389)"),
+            TransactionData::DeploySmartContract { publisher, sc } => {
+                match sc.clone().unwrap().api {
+                    smart_contract::SmartContractApi::ESC20 { mut publisher, .. } => {
+                        publisher = publisher;
+                        publisher
+                    }
+                };
+                let contract_addr = &world_state
+                    .create_smart_contact(sc.clone().unwrap())
+                    .unwrap();
+                for (_, account) in world_state.get_accounts() {
+                    account
+                        .store
+                        .insert(contract_addr.clone(), (0 as u128).to_string());
+                }
+
+                let total_supply = match sc.clone().unwrap().api {
+                    smart_contract::SmartContractApi::ESC20 { total_suply, .. } => total_suply,
+                };
+                let account = world_state.get_account_by_id_mut(publisher).unwrap();
+                account
+                    .store
+                    .insert(contract_addr.clone(), total_supply.to_string());
+
+                Ok(contract_addr.clone())
+            }
+
+            TransactionData::TransferToken { token, to, amount } => {
+                let smart_contract = world_state.get_smart_contacts().get_mut(token);
+
+                match smart_contract {
+                    Some(sc) => {
+                        if sc.r#type == SmartContractStanderd::ESC20 {
+                            sc.execute_fn("transfer", vec![&self.from, to, &amount.to_string()]);
+                        } else if sc.r#type == SmartContractStanderd::ESC721 {
+                        } else {
+                            return Err("Not a transferable assest");
+                        }
+                    }
+                    None => return Err("Token does not exist"),
+                }
+
+                Ok("Token transfer success".to_string())
+            }
+
+            TransactionData::ChangeStoreValue { key, value } => {
+                let acc = world_state.get_account_by_id_mut(&self.from).unwrap();
+
+                if key.starts_with("etnl:") {
+                    return Err("Can not change store related to a smart contract");
+                }
+
+                acc.store.insert(key.clone(), value.clone());
+
+                Ok("Store updated".to_string())
+            }
+            // _ => Err("Unknown Transaction type (not implemented) (Code: 487289724389)"),
         };
     }
 

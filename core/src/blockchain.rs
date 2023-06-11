@@ -1,51 +1,48 @@
 use eternal_account::{Account, AccountType};
+use eternal_vm::smart_contract::SmartContract;
 use serde::{Deserialize, Serialize};
 
-use crate::{block::Block, transaction::Transaction, WorldState};
+use crate::{block::Block, transaction::Transaction};
+use eternal_vm::WorldState;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Blockchain {
     pub blocks: Vec<Block>,
+    #[serde(skip_serializing, skip_deserializing)]
+    pub smart_contracts: HashMap<String, SmartContract>,
     pub accounts: HashMap<String, Account>,
+    pub temp: Vec<String>,
     pub pending_transactions: Vec<Transaction>,
 }
 
 impl Blockchain {
     pub fn new() -> Self {
-        let mut accounts: HashMap<String, Account> = HashMap::new();
-        accounts.insert(
-            "ETNLef3c9bc4d1a25b4470ce63a68eab665d8".to_string(),
-            Account {
-                private_key: "131fd703dab439f9b13e0f4eaa2e7e304cd2cf7fafd6c5b6a76181d72ed4d0bc"
-                    .to_string(),
-                public_key: "03050f36e932ade90ce57a00f79ac39e3ef3c9bc4d1a25b4470ce63a68eab665d8"
-                    .to_string(),
-                public_key_bytes: vec![],
-                store: HashMap::new(),
-                acc_type: AccountType::User,
-                tokens: 100,
-            },
-        );
-        accounts.insert(
-            "ETNLfc1ba2b2ce877357d6c5abda465ba4e44".to_string(),
-            Account {
-                private_key: "339e930e2da5288475409c3ee2fa26294f4a1c63c1a4f2da1b65d733b8d51b61"
-                    .to_string(),
-                public_key: "0226e56beda35e9c4698a6f37975d4792fc1ba2b2ce877357d6c5abda465ba4e44"
-                    .to_string(),
-                public_key_bytes: vec![],
-                store: HashMap::new(),
-                acc_type: AccountType::User,
-                tokens: 100,
-            },
-        );
-
+        let accounts = HashMap::new();
+        let scs = HashMap::new();
         Self {
             blocks: Vec::new(),
             accounts,
+            temp: vec![],
+            smart_contracts: scs,
             pending_transactions: Vec::new(),
         }
+    }
+
+    pub fn get_bob_alice(&mut self) -> (String, String) {
+        let mut alice = Account::new(AccountType::User);
+        let mut bob = Account::new(AccountType::User);
+        bob.tokens = 100_000;
+        alice.tokens = 100_00;
+        println!("\n{}\n{}", bob.generate_adress(), alice.generate_adress());
+
+        let alice_addr = alice.generate_adress().clone();
+        let bob_arr = bob.generate_adress().clone();
+
+        self.accounts.insert(alice.generate_adress(), alice);
+        self.accounts.insert(bob.generate_adress(), bob);
+
+        (bob_arr, alice_addr)
     }
 
     pub fn get_block(&self, hash: String) -> Block {
@@ -93,15 +90,19 @@ impl Blockchain {
         // Execute each transaction
         for (i, transaction) in block.transactions.iter().enumerate() {
             // Execute the transaction
-            if let Err(err) = transaction.execute(self, &is_genesis) {
-                self.accounts = old_state;
 
-                return Err(format!(
-                    "Could not execute transaction {} due to `{}`. Rolling back \
-                (Code: 38203984)",
-                    i + 1,
-                    err
-                ));
+            match transaction.execute(self, &is_genesis) {
+                Err(err) => {
+                    self.accounts = old_state;
+
+                    return Err(format!(
+                        "Could not execute transaction {} due to `{}`. Rolling back \
+                    (Code: 38203984)",
+                        i + 1,
+                        err
+                    ));
+                }
+                Ok(out) => self.temp.push(out),
             }
         }
 
@@ -195,14 +196,47 @@ impl WorldState for Blockchain {
         self.accounts.get(id)
     }
 
-    fn create_account(&mut self, account_type: AccountType) -> Result<(), &'static str> {
+    fn create_account(&mut self, account_type: AccountType) -> Result<String, &'static str> {
         let acc = Account::new(account_type);
         let address = acc.generate_adress();
         return if !self.get_user_ids().contains(&address) {
-            self.accounts.insert(address, acc);
-            Ok(())
+            self.accounts.insert(address.clone(), acc);
+            Ok(address.clone())
         } else {
             Err("User already exists! (Code: 934823094)")
         };
+    }
+
+    fn get_smart_contact_ids(&self) -> Vec<String> {
+        self.smart_contracts.keys().map(|s| s.clone()).collect()
+    }
+
+    fn get_smart_contact_by_id_mut(&mut self, id: &String) -> Option<&mut SmartContract> {
+        self.smart_contracts.get_mut(id)
+    }
+
+    fn get_smart_contact_by_id(&self, id: &String) -> Option<&SmartContract> {
+        self.smart_contracts.get(id)
+    }
+
+    fn create_smart_contact(
+        &mut self,
+        smart_contract: SmartContract,
+    ) -> Result<String, &'static str> {
+        let address = self.create_account(AccountType::SmartContract).unwrap();
+        return if !self.get_smart_contact_ids().contains(&address) {
+            self.smart_contracts.insert(address.clone(), smart_contract);
+            Ok(address)
+        } else {
+            Err("User Contract exists! (Code: 934823094)")
+        };
+    }
+
+    fn get_accounts(&mut self) -> &mut HashMap<String, Account> {
+        &mut self.accounts
+    }
+
+    fn get_smart_contacts(&mut self) -> &mut HashMap<String, SmartContract> {
+        &mut self.smart_contracts
     }
 }
