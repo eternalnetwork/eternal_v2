@@ -2,7 +2,7 @@ pub mod smart_contract;
 use std::collections::HashMap;
 
 use eternal_account::{Account, AccountType};
-use smart_contract::SmartContract;
+use smart_contract::SmartContract as SC;
 
 pub trait WorldState {
     /// Will bring us all registered user ids
@@ -20,18 +20,22 @@ pub trait WorldState {
     fn get_smart_contact_ids(&self) -> Vec<String>;
 
     /// Will return an account given it id if is available (mutable)
-    fn get_smart_contact_by_id_mut(&mut self, id: &String) -> Option<&mut SmartContract>;
+    fn get_smart_contact_by_id_mut(&mut self, id: &String) -> Option<&mut SC>;
 
     /// Will return an account given it id if is available
-    fn get_smart_contact_by_id(&self, id: &String) -> Option<&SmartContract>;
+    fn get_smart_contact_by_id(&self, id: &String) -> Option<&SC>;
 
     /// Will add a new account
     fn create_smart_contact(
         &mut self,
-        account_type: SmartContract,
+        account_type: SC,
     ) -> Result<String, &'static str>;
 
     fn get_accounts(&mut self) -> &mut HashMap<String, Account>;
 
-    fn get_smart_contacts(&mut self) -> &mut HashMap<String, SmartContract>;
+    fn get_smart_contacts(&mut self) -> &mut HashMap<String, SC>;
+}
+
+pub trait SmartContract {
+    fn deploy(&self) -> SC;
 }

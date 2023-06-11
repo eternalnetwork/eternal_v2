@@ -6,14 +6,36 @@ use eternal_core::{
     transaction::{Transaction, TransactionData},
 };
 
-use eternal_vm::smart_contract::{SmartContract, SmartContractApi, SmartContractStanderd};
+use eternal_macro::SmartContract;
+use eternal_vm::smart_contract::SmartContract as SC;
+use eternal_vm::smart_contract::{SmartContractApi, SmartContractStanderd};
 use rustyline::{error::ReadlineError, DefaultEditor};
+
+#[derive(SmartContract)]
+#[standerd(name = "ESC20")]
+struct PepeToken {
+
+    #[property(name = "total_supply")]
+    total_supply: u128,
+
+    #[method(name = "transfer")]
+    transfer: fn(String, String, u128) -> Result<(), String>,
+}
 
 fn main() {
     let mut bc = Blockchain::new();
-    run_blockchain_actions(&mut bc);
+    let sc = PepeToken {
+        transfer: |_, _, _| {
+            Ok(())
+        },
+        total_supply: 100,
+    };
 
-    println!("{}", serde_json::to_string(&bc).unwrap().as_str());
+    sc.deploy();
+
+    // run_blockchain_actions(&mut bc);
+
+    // println!("{}", serde_json::to_string(&bc).unwrap().as_str());
 }
 
 fn run_blockchain_actions(bc: &mut Blockchain) {
@@ -58,7 +80,7 @@ fn run_blockchain_actions(bc: &mut Blockchain) {
             10,
         ));
 
-        let sc: SmartContract = smart_contract();
+        let sc: SC = smart_contract();
 
         block.add_transaction(Transaction::new(
             alice.clone(),
@@ -106,8 +128,8 @@ fn get_input() -> (String, String, String) {
     (token, amount, to)
 }
 
-fn smart_contract() -> SmartContract {
-    SmartContract::new(
+fn smart_contract() -> SC {
+    SC::new(
         SmartContractStanderd::from("ESC20"),
         SmartContractApi::ESC20 {
             transfer: |from, to, amount| Ok(println!("{} =Transfered {}> {}", from, amount, to)),

@@ -3,9 +3,6 @@ name = "eternal-vm"
 version = "0.1.0"
 edition = "2021"
 
-[features]
-dep = []
-
 [dependencies]
 eternal-account = { version = "0.1.0", path = "../account" }
 serde = { version = "1.0.164", features = ["derive"] }

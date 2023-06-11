@@ -1,5 +1,5 @@
 use rand::RngCore;
-use secp256k1::{ecdsa::Signature, PublicKey, Secp256k1, SecretKey};
+use secp256k1::{PublicKey, Secp256k1, SecretKey};
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 pub struct Account {
     pub private_key: String,
     pub public_key: String,
-    pub secret_key: String,
+    // pub secret_key: String,
     pub public_key_bytes: Vec<u8>,
     pub store: HashMap<String, String>,
     pub acc_type: AccountType,
@@ -34,7 +34,7 @@ pub enum AccountType {
 
 impl Account {
     pub fn new(account_type: AccountType) -> Self {
-        let (priv_key, pub_key, pk_bytes) = Self::generate_keypair();
+        let (priv_key, _, pub_key, pk_bytes) = Self::generate_keypair();
 
         Self {
             private_key: priv_key,

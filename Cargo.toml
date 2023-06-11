@@ -3,6 +3,7 @@ members = [
     "account",
     "core",
     "networking",
+    "macro",
     "vm",
     "tests"
 ]
